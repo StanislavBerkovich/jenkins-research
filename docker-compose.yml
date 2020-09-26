@@ -1,0 +1,68 @@
+version: "3.8"
+services:
+  jenkins:
+    image: jenkins/jenkins
+    ports:
+      - '8080:8080'
+      - '50000:50000'
+
+  postgres:
+    image: postgres:11.7
+    ports:
+      - '8001:5432'
+    environment:
+      POSTGRES_PASSWORD: casino
+      POSTGRES_USER: casino
+
+  redis:
+    image: redis:5.0.8-alpine
+    restart: unless-stopped
+    command: redis-server
+
+  casino_build:
+    build: .
+    image: jenkins_test_casino_app
+
+  casino_base: &casino_base
+    image: jenkins_test_casino_app:latest
+    command: bundle exec bin/rails s -b 0.0.0.0 -p 3000 -e development
+    tty: true
+    stdin_open: true
+    depends_on:
+      - postgres
+      - redis
+      - jenkins
+
+  casino:
+    <<: *casino_base
+    ports:
+      - '3000:3000'
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_HOST=postgres
+      - DATABASE_NAME=casino
+      - REDIS_NAMESPACE=casino
+
+  casino1:
+    <<: *casino_base
+    ports:
+      - '3001:3000'
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_HOST=postgres
+      - DATABASE_NAME=casino1
+      - REDIS_NAMESPACE=casino1
+
+  casino2:
+    <<: *casino_base
+    ports:
+      - '3002:3000'
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - POSTGRES_HOST=postgres
+      - DATABASE_NAME=casino2
+      - REDIS_NAMESPACE=casino2
+
+# docker-compose exec casino apt-get install icedtea-netx wget
+# docker-compose exec casino wget http://localhost:8080/jnlpJars/agent.jar
+#  docker-compose exec casino java -jar agent.jar -jnlpUrl http://jenkins:8080/computer/casino/slave-agent.jnlp -secret 409ccf17381d9677c20dd61a04df3802be8ac7c4ee66047174e047c7c008683c -workDir "/casino-ruby"

@@ -1,0 +1,26 @@
+docker-compose up -d jenkins
+docker-compose build casino_build
+
+Go to locahost:8080 and setup jenkins
+Fill URl like http://jenkins:8080 in settings
+Add casino hosts
+
+```
+casinos=( casino casino1  casino2 )
+secrets=( "" "" "" )
+for ((i = 0; i < ${#casinos[@]}; ++i))
+do
+  c=${casinos[$i]}
+  secret=${secrets[$i]}
+
+
+	docker-compose run $c rake db:create
+	docker-compose up -d $c
+	docker-compose exec $c wget http://jenkins:8080/jnlpJars/agent.jar
+	docker-compose exec -d $c java -jar agent.jar -jnlpUrl http://jenkins:8080/computer/casino2/slave-agent.jnlp -secret "$secret"  -workDir "/casino-ruby"
+done
+```
+
+Add "Node and Label parameter", 'Rake', 'Pipeline' plugins to jenkins
+
+
